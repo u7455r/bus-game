@@ -3,431 +3,707 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>কসবা বাস সিমুলেটর 3D - Kasba Upazila Highway Drive</title>
+  <title>BrainStorm Pro - আলটিমেট মাইন্ড গেম হাব</title>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 49, 0.75);
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff007f;
+      --neon-green: #00ff88;
+      --neon-yellow: #ffe600;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
     * {
       box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
       margin: 0;
       padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
     }
     body {
-      overflow: hidden;
-      background: #87ceeb;
-      font-family: 'Segoe UI', Arial, sans-serif;
-    }
-    #game-canvas {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-    }
-    /* মিটার ও লোকেশন ডিসপ্লে */
-    #dashboard-ui {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      z-index: 20;
-      color: #fff;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      padding: 12px 20px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    }
-    .location-tag {
-      font-size: 14px;
-      color: #00ffcc;
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
-    .speedo {
-      font-size: 26px;
-      font-weight: 900;
-      color: #ffcc00;
-    }
-    .passenger-count {
-      font-size: 13px;
-      color: #70e000;
-      margin-top: 3px;
-    }
-
-    /* ক্যামেরা সুইচ বাটন */
-    #camBtn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      z-index: 25;
-      background: rgba(0, 106, 78, 0.85);
-      border: 1px solid #fff;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-
-    /* মোবাইল কন্ট্রোল বাটন */
-    .controls {
-      position: absolute;
-      bottom: 25px;
-      z-index: 30;
+      background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, var(--bg) 80%);
+      color: var(--text);
+      font-family: 'Hind Siliguri', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
       display: flex;
-      gap: 15px;
+      flex-direction: column;
     }
-    .controls-left { left: 20px; }
-    .controls-right { right: 20px; }
-    .btn {
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.25);
-      border: 2px solid rgba(255, 255, 255, 0.6);
-      color: white;
-      font-size: 20px;
+
+    /* টপ ন্যাভবার ও গ্লোবাল স্কোর */
+    header {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .score-badge {
+      background: linear-gradient(135deg, rgba(255,0,127,0.2), rgba(0,240,255,0.2));
+      border: 1px solid var(--neon-cyan);
+      padding: 6px 18px;
+      border-radius: 50px;
+      font-size: 16px;
       font-weight: bold;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+    .score-badge span {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--neon-yellow);
+      font-size: 20px;
+    }
+
+    /* গেম সিলেকশন ক্যারোসেল / ড্রয়ার */
+    .game-nav-container {
+      background: rgba(10, 15, 29, 0.95);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 15px;
+      overflow-x: auto;
+      white-space: nowrap;
+      display: flex;
+      gap: 10px;
+      scrollbar-width: thin;
+    }
+    .game-nav-container::-webkit-scrollbar { height: 4px; }
+    .game-nav-container::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 4px; }
+    
+    .game-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+    .game-tab:hover, .game-tab.active {
+      background: linear-gradient(135deg, #00f0ff, #7928ca);
+      color: #fff;
+      border-color: #fff;
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    /* মূল গেমপ্লে এলাকা */
+    main {
+      flex: 1;
       display: flex;
       justify-content: center;
       align-items: center;
-      backdrop-filter: blur(6px);
+      padding: 25px 15px;
+    }
+    .game-viewport {
+      width: 100%;
+      max-width: 650px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      text-align: center;
+      position: relative;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* গেম হেডার ও কমন এলিমেন্টস */
+    .g-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      margin-bottom: 6px;
+    }
+    .g-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .game-screen { display: none; }
+    .game-screen.active { display: block; }
+
+    .btn-action {
+      background: linear-gradient(135deg, var(--neon-pink), #7928ca);
+      border: none;
+      color: white;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 12px;
       cursor: pointer;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+      transition: 0.2s;
     }
-    .btn:active {
-      background: rgba(0, 255, 204, 0.5);
-      transform: scale(0.92);
+    .btn-action:hover { transform: scale(1.05); filter: brightness(1.2); }
+    .btn-action:active { transform: scale(0.95); }
+
+    /* গেম ১: কুইজ */
+    .quiz-question { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+    .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .quiz-opt {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 14px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.2s;
     }
-    @media (min-width: 800px) {
-      .controls { display: none; }
+    .quiz-opt:hover { background: rgba(0, 240, 255, 0.2); border-color: var(--neon-cyan); }
+
+    /* গেম ২: মেমোরি কার্ড */
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .mem-card {
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      cursor: pointer;
+      transition: transform 0.3s ease, background 0.3s;
+    }
+    .mem-card.flipped { background: rgba(0, 240, 255, 0.3); border-color: var(--neon-cyan); }
+
+    /* গেম ৩: স্পিড ম্যাথ */
+    .math-box { font-size: 44px; font-family: 'Orbitron', sans-serif; color: var(--neon-yellow); margin: 20px 0; }
+
+    /* গেম ৪: কালার ট্রিক */
+    .color-word { font-size: 48px; font-weight: 900; margin: 25px 0; }
+
+    /* গেম ৫: রিফ্লেক্স বক্স */
+    .reflex-pad {
+      height: 200px;
+      border-radius: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+
+    /* গেম ৬: সাইমন সেজ প্যাটার্ন */
+    .simon-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      max-width: 280px;
+      margin: 20px auto;
+    }
+    .simon-btn {
+      height: 110px;
+      border-radius: 18px;
+      opacity: 0.5;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .simon-btn.lit { opacity: 1; transform: scale(1.05); filter: brightness(1.6); }
+
+    input.game-input {
+      width: 80%;
+      max-width: 280px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 2px solid var(--neon-cyan);
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 20px;
+      text-align: center;
+      outline: none;
+      margin-bottom: 15px;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-  <div id="dashboard-ui">
-    <div class="location-tag">📍 কসবা উপজেলা, ব্রাহ্মণবাড়িয়া</div>
-    <div>গতি: <span class="speedo" id="speedText">0</span> কিমি/ঘণ্টা</div>
-    <div class="passenger-count">👥 বাসে যাত্রী: ১৬ জন</div>
+  <!-- টপ বার -->
+  <header>
+    <div class="logo">🧠 BRAINSTORM</div>
+    <div class="score-badge">
+      মোট পয়েন্ট: <span id="totalScore">0</span> 🪙
+    </div>
+  </header>
+
+  <!-- গেম সুইচিং বার -->
+  <div class="game-nav-container">
+    <div class="game-tab active" onclick="switchGame(0)">❓ কুইজ মাস্টার</div>
+    <div class="game-tab" onclick="switchGame(1)">🎴 মেমোরি কার্ড</div>
+    <div class="game-tab" onclick="switchGame(2)">⚡ স্পিড ম্যাথ</div>
+    <div class="game-tab" onclick="switchGame(3)">🎨 কালার মাইন্ড</div>
+    <div class="game-tab" onclick="switchGame(4)">⚡ রিফ্লেক্স টেস্ট</div>
+    <div class="game-tab" onclick="switchGame(5)">🔢 মেমোরি ফ্ল্যাশ</div>
+    <div class="game-tab" onclick="switchGame(6)">🔤 ওয়ার্ড পাজল</div>
+    <div class="game-tab" onclick="switchGame(7)">🔮 সাইমন সিকোয়েন্স</div>
+    <div class="game-tab" onclick="switchGame(8)">🎈 টাইপ মাস্টার</div>
+    <div class="game-tab" onclick="switchGame(9)">🎲 লাক অ্যান্ড লজিক</div>
   </div>
 
-  <button id="camBtn">ক্যামেরা ভিউ পরিবর্তন 🎥</button>
+  <main>
+    <div class="game-viewport">
 
-  <div class="controls controls-left">
-    <div class="btn" id="btnLeft">◀</div>
-    <div class="btn" id="btnRight">▶</div>
-  </div>
-  <div class="controls controls-right">
-    <div class="btn" id="btnBrake" style="background: rgba(235, 77, 75, 0.4);">ব্রেক</div>
-    <div class="btn" id="btnGas" style="background: rgba(46, 204, 113, 0.4);">গ্যাস</div>
-  </div>
+      <!-- গেম ১: কুইজ মাস্টার -->
+      <div class="game-screen active" id="game-0">
+        <h2 class="g-title">কুইজ মাস্টার</h2>
+        <p class="g-desc">সঠিক উত্তরের মাধ্যমে নিজের জ্ঞান যাচাই করে পয়েন্ট অর্জন করুন!</p>
+        <div class="quiz-question" id="q-text">প্রশ্ন লোড হচ্ছে...</div>
+        <div class="quiz-options" id="q-opts"></div>
+      </div>
 
-  <canvas id="game-canvas"></canvas>
+      <!-- গেম ২: মেমোরি কার্ড -->
+      <div class="game-screen" id="game-1">
+        <h2 class="g-title">মেমোরি কার্ড চ্যালেঞ্জ</h2>
+        <p class="g-desc">কার্ড উল্টে উল্টে একই জোড়ার ইমোজি খুঁজে বের করুন।</p>
+        <div class="memory-grid" id="mem-board"></div>
+      </div>
+
+      <!-- গেম ৩: স্পিড ম্যাথ -->
+      <div class="game-screen" id="game-2">
+        <h2 class="g-title">স্পিড ম্যাথ রাশ</h2>
+        <p class="g-desc">চোখের পলকে গণিতের সঠিক সমাধান বেছে নিন!</p>
+        <div class="math-box" id="math-problem">5 + 7 = ?</div>
+        <div class="quiz-options" id="math-opts"></div>
+      </div>
+
+      <!-- গেম ৪: কালার মাইন্ড ট্রিক -->
+      <div class="game-screen" id="game-3">
+        <h2 class="g-title">স্ট্রুপ কালার টেস্ট</h2>
+        <p class="g-desc">শব্দটি কোন রঙে লেখা? শব্দের নামের ফাঁদে পা দেবেন না!</p>
+        <div class="color-word" id="color-text">নীল</div>
+        <div class="quiz-options" id="color-opts"></div>
+      </div>
+
+      <!-- গেম ৫: রিফ্লেক্স টেস্ট -->
+      <div class="game-screen" id="game-4">
+        <h2 class="g-title">রিফ্লেক্স ও নার্ভ টেস্ট</h2>
+        <p class="g-desc">সবুজ রঙ হওয়া মাত্রই যত দ্রুত সম্ভব ক্লিক করুন!</p>
+        <div class="reflex-pad" id="reflex-box" style="background: #e11d48;" onclick="handleReflex()">অপেক্ষা করুন...</div>
+      </div>
+
+      <!-- গেম ৬: মেমোরি ফ্ল্যাশ -->
+      <div class="game-screen" id="game-5">
+        <h2 class="g-title">নাম্বার মেমোরি ফ্ল্যাশ</h2>
+        <p class="g-desc">স্ক্রিনে আসা সংখ্যাটি মনে রাখুন এবং টাইপ করুন।</p>
+        <div class="math-box" id="flash-num">৭৯২</div>
+        <div id="flash-input-area" style="display:none;">
+          <input type="number" class="game-input" id="flash-ans" placeholder="সংখ্যা লিখুন">
+          <br>
+          <button class="btn-action" onclick="checkFlash()">সাবমিট</button>
+        </div>
+      </div>
+
+      <!-- গেম ৭: ওয়ার্ড পাজল -->
+      <div class="game-screen" id="game-6">
+        <h2 class="g-title">ওয়ার্ড আনস্ক্র্যাম্বল</h2>
+        <p class="g-desc">এলোমেলো অক্ষরগুলোকে সাজিয়ে সঠিক অর্থবোধক শব্দ বানান।</p>
+        <div class="math-box" id="scramble-word" style="color:var(--neon-green)">শ্লদেবাঙ্গা</div>
+        <input type="text" class="game-input" id="scramble-ans" placeholder="সঠিক শব্দ">
+        <br>
+        <button class="btn-action" onclick="checkScramble()">যাচাই করুন</button>
+      </div>
+
+      <!-- গেম ৮: সাইমন সিকোয়েন্স -->
+      <div class="game-screen" id="game-7">
+        <h2 class="g-title">সাইমন ব্রেন প্যাটার্ন</h2>
+        <p class="g-desc">আলো জ্বলার ক্রম মনে রেখে বাটনে চাপুন।</p>
+        <div class="simon-grid">
+          <div class="simon-btn" style="background:#ef4444" id="sim-0" onclick="simonPress(0)"></div>
+          <div class="simon-btn" style="background:#3b82f6" id="sim-1" onclick="simonPress(1)"></div>
+          <div class="simon-btn" style="background:#10b981" id="sim-2" onclick="simonPress(2)"></div>
+          <div class="simon-btn" style="background:#f59e0b" id="sim-3" onclick="simonPress(3)"></div>
+        </div>
+        <button class="btn-action" id="sim-start-btn" onclick="startSimon()">শুরু করুন</button>
+      </div>
+
+      <!-- গেম ৯: টাইপিং মাস্টার -->
+      <div class="game-screen" id="game-8">
+        <h2 class="g-title">টাইপিং রাশ</h2>
+        <p class="g-desc">নিচের শব্দটি দ্রুত দেখে নির্ভুলভাবে টাইপ করুন!</p>
+        <div class="math-box" id="type-target" style="color:var(--neon-pink)">কম্পিউটার</div>
+        <input type="text" class="game-input" id="type-input" placeholder="এখানে লিখুন" oninput="checkType()">
+      </div>
+
+      <!-- গেম ১০: লাক অ্যান্ড লজিক -->
+      <div class="game-screen" id="game-9">
+        <h2 class="g-title">মাইন্ড রিডার লজিক</h2>
+        <p class="g-desc">কম্পিউটার ১ থেকে ৫০ এর মধ্যে একটি সংখ্যা বেছে নিয়েছে। সেটা অনুমান করুন!</p>
+        <div id="guess-hint" style="font-size:18px; margin: 15px 0; color:var(--neon-yellow)">সংখ্যাটি খুঁজুন...</div>
+        <input type="number" class="game-input" id="guess-input" placeholder="১-৫০">
+        <br>
+        <button class="btn-action" onclick="checkGuess()">অনুমান করুন</button>
+      </div>
+
+    </div>
+  </main>
 
   <script>
-    // ১. সিন, আলো ও ক্যামেরা
-    const canvas = document.getElementById('game-canvas');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.FogExp2(0x87ceeb, 0.007);
+    // সাউন্ড সিন্থেসাইজার (Audio Engine)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(freq, type="sine", duration=0.15) {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e){}
+    }
 
-    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
+    // গ্লোবাল স্কোর ট্র্যাকার
+    let globalPoints = localStorage.getItem('brainPoints') ? parseInt(localStorage.getItem('brainPoints')) : 0;
+    const scoreDisplay = document.getElementById('totalScore');
+    scoreDisplay.innerText = globalPoints;
 
-    const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.3);
-    sunLight.position.set(40, 80, 40);
-    sunLight.castShadow = true;
-    scene.add(sunLight);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    function addPoints(pts) {
+      globalPoints += pts;
+      scoreDisplay.innerText = globalPoints;
+      localStorage.setItem('brainPoints', globalPoints);
+      playBeep(600, 'triangle', 0.2);
+    }
+    function wrongSound() {
+      playBeep(180, 'sawtooth', 0.3);
+    }
 
-    // ২. সম্পূর্ণ ৩ডি বাস তৈরি (Full Bus Body + Glass + Passengers)
-    const busGroup = new THREE.Group();
-    scene.add(busGroup);
+    // গেম সুইচ লজিক
+    function switchGame(index) {
+      document.querySelectorAll('.game-tab').forEach((t, i) => t.classList.toggle('active', i === index));
+      document.querySelectorAll('.game-screen').forEach((s, i) => s.classList.toggle('active', i === index));
+      
+      // গেম ইনিশিয়ালাইজেশন
+      if(index === 0) loadQuiz();
+      if(index === 1) initMemory();
+      if(index === 2) nextMath();
+      if(index === 3) nextColor();
+      if(index === 4) initReflex();
+      if(index === 5) nextFlash();
+      if(index === 6) nextScramble();
+      if(index === 8) nextType();
+      if(index === 9) initGuess();
+    }
 
-    // বাসের মূল বডি (লাল-সবুজ দেশীয় সুপারক্লাস এক্সপ্রেস বাস)
-    const busBodyMat = new THREE.MeshStandardMaterial({ color: 0x006a4e, roughness: 0.4 }); // গাঢ় সবুজ
-    const stripeMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.4 });  // লাল স্ট্রাইপ
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.45, roughness: 0.1 });
-
-    const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.2, 8.5), busBodyMat);
-    lowerBody.position.y = 0.9;
-    busGroup.add(lowerBody);
-
-    const redStripe = new THREE.Mesh(new THREE.BoxGeometry(2.82, 0.35, 8.52), stripeMat);
-    redStripe.position.y = 1.1;
-    busGroup.add(redStripe);
-
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.35, 8.5), busBodyMat);
-    roof.position.y = 2.75;
-    busGroup.add(roof);
-
-    // বাসের বড় গ্লাস/উইন্ডোজ
-    const sideGlassL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 7.5), glassMat);
-    sideGlassL.position.set(-1.36, 2.0, 0.2);
-    const sideGlassR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.2, 7.5), glassMat);
-    sideGlassR.position.set(1.36, 2.0, 0.2);
-    const frontWindshield = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.4, 0.1), glassMat);
-    frontWindshield.position.set(0, 2.0, -4.2);
-    frontWindshield.rotation.x = -0.15;
-    const backGlass = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.2, 0.1), glassMat);
-    backGlass.position.set(0, 2.0, 4.22);
-    busGroup.add(sideGlassL, sideGlassR, frontWindshield, backGlass);
-
-    // বাসের চাকা
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
-    const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.35, 20);
-    const wheelPositions = [
-      [-1.4, 0.5, -2.6], [1.4, 0.5, -2.6],
-      [-1.4, 0.5, 2.4], [1.4, 0.5, 2.4]
+    /* ================= গেম ১: কুইজ ================= */
+    const quizData = [
+      { q: "বাংলাদেশের জাতীয় কবি কে?", o: ["রবীন্দ্রনাথ ঠাকুর", "কাজী নজরুল ইসলাম", "জসীমউদ্দীন", "জীবনানন্দ দাশ"], a: 1 },
+      { q: "সূর্যোদয়ের দেশ বলা হয় কোনটিকে?", o: ["জাপান", "চীন", "নরওয়ে", "কানাডা"], a: 0 },
+      { q: "মানবদেহের স্বাভাবিক তাপমাত্রা কত?", o: ["৯৮.৪° F", "১০২° F", "৯৬° F", "১০০° F"], a: 0 },
+      { q: "তিতাস গ্যাস ক্ষেত্র কোন জেলায় অবস্থিত?", o: ["সিলেট", "ব্রাহ্মণবাড়িয়া", "কুমিল্লা", "হবিগঞ্জ"], a: 1 },
+      { q: "কম্পিউটারের মস্তিষ্ক কাকে বলা হয়?", o: ["RAM", "Monitor", "CPU", "Hard Disk"], a: 2 }
     ];
-    wheelPositions.forEach(pos => {
-      const w = new THREE.Mesh(wheelGeo, wheelMat);
-      w.rotation.z = Math.PI / 2;
-      w.position.set(...pos);
-      busGroup.add(w);
-    });
-
-    // ড্যাশবোর্ড ও স্টিয়ারিং (কেবিনের ভেতরে)
-    const dash = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.6, 0.8), new THREE.MeshStandardMaterial({ color: 0x222 }));
-    dash.position.set(0, 1.5, -3.7);
-    busGroup.add(dash);
-
-    const steerRing = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.03, 16, 30), new THREE.MeshStandardMaterial({ color: 0x050505 }));
-    steerRing.position.set(-0.65, 1.65, -3.4);
-    steerRing.rotation.x = 0.5;
-    busGroup.add(steerRing);
-
-    // বাসের ভেতরের বসা যাত্রী তৈরি (Passengers seated inside)
-    function createPassengers() {
-      const shirtColors = [0x3a86ff, 0xff006e, 0xfb5607, 0xffbe0b, 0x8338ec, 0x2ec4b6, 0xffffff];
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4a373 });
-
-      // বাসের দুই পাশে ৪ সারি করে সিট ও যাত্রী
-      for (let z = -2.2; z <= 3.2; z += 1.4) {
-        [-0.75, 0.75].forEach(x => {
-          // সিট
-          const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.5), new THREE.MeshStandardMaterial({ color: 0x1d3557 }));
-          seat.position.set(x, 1.4, z);
-          busGroup.add(seat);
-
-          // যাত্রী শরীর
-          const randomColor = shirtColors[Math.floor(Math.random() * shirtColors.length)];
-          const body = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.3), new THREE.MeshStandardMaterial({ color: randomColor }));
-          body.position.set(x, 1.8, z);
-
-          // যাত্রী মাথা
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), skinMat);
-          head.position.set(x, 2.15, z);
-
-          busGroup.add(body, head);
-        });
-      }
-    }
-    createPassengers();
-
-    // ৩. ক্যামেরা ভিউ সিস্টেম (First-Person vs Third-Person)
-    let isThirdPerson = true; // ডিফল্টভাবে পুরো বাস দেখা যাবে
-    function updateCameraView() {
-      if (isThirdPerson) {
-        camera.position.set(0, 4.5, 9.5); // বাসের ঠিক পেছনে ও ওপরে (পুরো বাস দেখা যাবে)
-        camera.lookAt(busGroup.position.x, busGroup.position.y + 1.8, busGroup.position.z - 15);
-      } else {
-        camera.position.set(-0.65, 1.9, -3.0); // কেবিনের ভেতরে চালকের চোখে
-        camera.lookAt(busGroup.position.x - 0.65, busGroup.position.y + 1.9, busGroup.position.z - 20);
-      }
-    }
-    document.getElementById('camBtn').addEventListener('click', () => {
-      isThirdPerson = !isThirdPerson;
-    });
-
-    // ৪. রাস্তা ও হাইওয়ে
-    const ROAD_LEN = 1400;
-    const roadWidth = 16;
-
-    const roadMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(roadWidth, ROAD_LEN),
-      new THREE.MeshStandardMaterial({ color: 0x2b2d42, roughness: 0.9 })
-    );
-    roadMesh.rotation.x = -Math.PI / 2;
-    roadMesh.position.z = -ROAD_LEN / 2 + 50;
-    scene.add(roadMesh);
-
-    // লেন ডিভাইডার দাগ
-    for (let z = 20; z > -ROAD_LEN; z -= 14) {
-      const line = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      line.rotation.x = -Math.PI / 2;
-      line.position.set(0, 0.02, z);
-      scene.add(line);
-    }
-
-    // মাটি/সবুজ মাঠ
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(700, ROAD_LEN),
-      new THREE.MeshStandardMaterial({ color: 0x386641, roughness: 1 })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.set(0, -0.05, -ROAD_LEN / 2 + 50);
-    scene.add(ground);
-
-    // ৫. কসবা উপজেলা ওয়েলকাম গেট এবং তোরণ
-    function createKasbaWelcomeGate(z) {
-      const gate = new THREE.Group();
-      const pMat = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
-      const pillarL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 0.8), pMat);
-      pillarL.position.set(-7.5, 4, 0);
-      const pillarR = new THREE.Mesh(new THREE.BoxGeometry(0.8, 8, 0.8), pMat);
-      pillarR.position.set(7.5, 4, 0);
-      gate.add(pillarL, pillarR);
-
-      // ব্যানার
-      const canvasBoard = document.createElement('canvas');
-      canvasBoard.width = 1024;
-      canvasBoard.height = 256;
-      const ctx = canvasBoard.getContext('2d');
-      ctx.fillStyle = '#006a4e';
-      ctx.fillRect(0, 0, 1024, 256);
-      ctx.fillStyle = '#d90429';
-      ctx.lineWidth = 14;
-      ctx.strokeRect(8, 8, 1008, 240);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 54px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('স্বাগতম কসবা উপজেলা', 512, 105);
-      ctx.font = '36px Arial';
-      ctx.fillStyle = '#ffbe0b';
-      ctx.fillText('ঐতিহাসিক কসবা সীমান্ত ও ব্রাহ্মণবাড়িয়া', 512, 185);
-
-      const tex = new THREE.CanvasTexture(canvasBoard);
-      const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(15, 3.8), new THREE.MeshBasicMaterial({ map: tex }));
-      signBoard.position.set(0, 6.5, 0);
-      gate.add(signBoard);
-
-      gate.position.z = z;
-      scene.add(gate);
-    }
-    createKasbaWelcomeGate(-60);
-    createKasbaWelcomeGate(-700);
-
-    // ৬. পাশের চলমান গাড়ি (Traffic Vehicles)
-    const trafficCars = [];
-    function createTrafficCar(x, z, speed, color) {
-      const car = new THREE.Group();
-      const carBody = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.2, 4.2), new THREE.MeshStandardMaterial({ color: color }));
-      carBody.position.y = 0.7;
-      const carTop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 2.2), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-      carTop.position.set(0, 1.5, -0.2);
-      car.add(carBody, carTop);
-
-      car.position.set(x, 0, z);
-      scene.add(car);
-      trafficCars.push({ mesh: car, speed: speed, initX: x });
-    }
-
-    createTrafficCar(4.5, -120, 0.45, 0xe63946);
-    createTrafficCar(4.8, -300, 0.55, 0xffb703);
-    createTrafficCar(-4.5, -200, 0.35, 0x2a9d8f);
-    createTrafficCar(-4.8, -480, 0.40, 0x457b9d);
-
-    // ৭. ড্রাইভিং কন্ট্রোল ও ফিজিক্স
-    const keys = { w: false, s: false, a: false, d: false };
-    let speed = 0;
-    let steerAngle = 0;
-    const maxSpeed = 1.35;
-    const accel = 0.012;
-    const friction = 0.985;
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.w = true;
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.s = true;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.a = true;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.d = true;
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.w = false;
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.s = false;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.a = false;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.d = false;
-    });
-
-    function bindBtn(id, prop) {
-      const btn = document.getElementById(id);
-      btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[prop] = true; });
-      btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[prop] = false; });
-      btn.addEventListener('mousedown', () => keys[prop] = true);
-      btn.addEventListener('mouseup', () => keys[prop] = false);
-    }
-    bindBtn('btnGas', 'w');
-    bindBtn('btnBrake', 's');
-    bindBtn('btnLeft', 'a');
-    bindBtn('btnRight', 'd');
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    const speedUI = document.getElementById('speedText');
-
-    // ৮. অ্যানিমেশন ও রেন্ডার লুপ
-    function animate() {
-      requestAnimationFrame(animate);
-
-      // স্পিড ক্যালকুলেশন
-      if (keys.w) speed = Math.min(speed + accel, maxSpeed);
-      else if (keys.s) speed = Math.max(speed - accel * 1.5, -0.3);
-      else speed *= friction;
-
-      // স্টিয়ারিং কন্ট্রোল
-      if (keys.a) steerAngle = Math.max(steerAngle - 0.04, -0.75);
-      else if (keys.d) steerAngle = Math.min(steerAngle + 0.04, 0.75);
-      else steerAngle *= 0.85;
-
-      // বাসের চলাচল
-      if (Math.abs(speed) > 0.005) {
-        busGroup.rotation.y -= steerAngle * 0.02 * (speed / maxSpeed);
-      }
-      busGroup.translateZ(-speed);
-
-      // স্টিয়ারিং ঘোরানো
-      steerRing.rotation.z = -steerAngle * 2.8;
-
-      // ট্রাফিক গাড়ি চলাচল
-      trafficCars.forEach(car => {
-        car.mesh.position.z -= car.speed;
-        if (car.mesh.position.z < busGroup.position.z - 300) {
-          car.mesh.position.z = busGroup.position.z + 100;
-        }
+    let qIdx = 0;
+    function loadQuiz() {
+      const cur = quizData[qIdx % quizData.length];
+      document.getElementById('q-text').innerText = cur.q;
+      const optDiv = document.getElementById('q-opts');
+      optDiv.innerHTML = '';
+      cur.o.forEach((opt, i) => {
+        const b = document.createElement('div');
+        b.className = 'quiz-opt';
+        b.innerText = opt;
+        b.onclick = () => {
+          if(i === cur.a) {
+            addPoints(10);
+            b.style.background = "rgba(0,255,136,0.5)";
+            setTimeout(() => { qIdx++; loadQuiz(); }, 600);
+          } else {
+            wrongSound();
+            b.style.background = "rgba(255,0,80,0.5)";
+          }
+        };
+        optDiv.appendChild(b);
       });
-
-      // ক্যামেরা বাসের অবস্থান ফলো করা
-      if (isThirdPerson) {
-        const offset = new THREE.Vector3(0, 4.2, 10).applyMatrix4(busGroup.matrixWorld);
-        camera.position.lerp(offset, 0.15);
-        camera.lookAt(busGroup.position.x, busGroup.position.y + 1.5, busGroup.position.z - 8);
-      } else {
-        const cabinOffset = new THREE.Vector3(-0.65, 1.9, -3.0).applyMatrix4(busGroup.matrixWorld);
-        camera.position.copy(cabinOffset);
-        const lookTarget = new THREE.Vector3(-0.65, 1.9, -15).applyMatrix4(busGroup.matrixWorld);
-        camera.lookAt(lookTarget);
-      }
-
-      // রাস্তা অনন্ত করা
-      if (busGroup.position.z < -ROAD_LEN + 200) {
-        busGroup.position.z = 0;
-      }
-
-      speedUI.innerText = Math.abs(Math.round(speed * 85));
-      renderer.render(scene, camera);
     }
 
-    animate();
+    /* ================= গেম ২: মেমোরি কার্ড ================= */
+    const emojis = ['🐯', '🚀', '⚽', '💎', '🔥', '👑'];
+    let memCards = [], flipped = [];
+    function initMemory() {
+      const board = document.getElementById('mem-board');
+      board.innerHTML = '';
+      flipped = [];
+      const deck = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+      deck.forEach(emo => {
+        const c = document.createElement('div');
+        c.className = 'mem-card';
+        c.dataset.icon = emo;
+        c.innerText = '❓';
+        c.onclick = () => flipCard(c);
+        board.appendChild(c);
+      });
+    }
+    function flipCard(card) {
+      if(flipped.length >= 2 || card.classList.contains('flipped')) return;
+      card.classList.add('flipped');
+      card.innerText = card.dataset.icon;
+      flipped.push(card);
+      if(flipped.length === 2) {
+        if(flipped[0].dataset.icon === flipped[1].dataset.icon) {
+          addPoints(15);
+          flipped = [];
+        } else {
+          wrongSound();
+          setTimeout(() => {
+            flipped.forEach(c => { c.classList.remove('flipped'); c.innerText = '❓'; });
+            flipped = [];
+          }, 700);
+        }
+      }
+    }
+
+    /* ================= গেম ৩: স্পিড ম্যাথ ================= */
+    let mathAns = 0;
+    function nextMath() {
+      const a = Math.floor(Math.random() * 20) + 1;
+      const b = Math.floor(Math.random() * 20) + 1;
+      mathAns = a + b;
+      document.getElementById('math-problem').innerText = `${a} + ${b} = ?`;
+      const opts = [mathAns, mathAns + 2, Math.max(1, mathAns - 3), mathAns + 5].sort(() => Math.random() - 0.5);
+      const optDiv = document.getElementById('math-opts');
+      optDiv.innerHTML = '';
+      opts.forEach(ans => {
+        const b = document.createElement('div');
+        b.className = 'quiz-opt';
+        b.innerText = ans;
+        b.onclick = () => {
+          if(ans === mathAns) { addPoints(8); nextMath(); }
+          else { wrongSound(); }
+        };
+        optDiv.appendChild(b);
+      });
+    }
+
+    /* ================= গেম ৪: স্ট্রুপ কালার টেস্ট ================= */
+    const colorBank = [
+      { name: "লাল", code: "#ef4444" },
+      { name: "সবুজ", code: "#10b981" },
+      { name: "নীল", code: "#3b82f6" },
+      { name: "হলুদ", code: "#eab308" }
+    ];
+    let correctColorName = "";
+    function nextColor() {
+      const wordObj = colorBank[Math.floor(Math.random() * colorBank.length)];
+      const colorObj = colorBank[Math.floor(Math.random() * colorBank.length)];
+      correctColorName = colorObj.name;
+      const txt = document.getElementById('color-text');
+      txt.innerText = wordObj.name;
+      txt.style.color = colorObj.code;
+      const optDiv = document.getElementById('color-opts');
+      optDiv.innerHTML = '';
+      colorBank.forEach(c => {
+        const b = document.createElement('div');
+        b.className = 'quiz-opt';
+        b.innerText = c.name;
+        b.onclick = () => {
+          if(c.name === correctColorName) { addPoints(10); nextColor(); }
+          else { wrongSound(); }
+        };
+        optDiv.appendChild(b);
+      });
+    }
+
+    /* ================= গেম ৫: রিফ্লেক্স টেস্ট ================= */
+    let reflexTimer = null, reflexStart = 0, canClick = false;
+    function initReflex() {
+      const pad = document.getElementById('reflex-box');
+      pad.style.background = "#e11d48";
+      pad.innerText = "অপেক্ষা করুন...";
+      canClick = false;
+      clearTimeout(reflexTimer);
+      reflexTimer = setTimeout(() => {
+        pad.style.background = "#00ff88";
+        pad.innerText = "ক্লিক করুন!";
+        reflexStart = Date.now();
+        canClick = true;
+      }, 2000 + Math.random() * 2500);
+    }
+    function handleReflex() {
+      const pad = document.getElementById('reflex-box');
+      if(!canClick) {
+        clearTimeout(reflexTimer);
+        pad.innerText = "খুব দ্রুত চেপেছেন! আবার অপেক্ষা...";
+        wrongSound();
+        setTimeout(initReflex, 1200);
+      } else {
+        const ms = Date.now() - reflexStart;
+        pad.innerText = `দারুণ! রেসপন্স টাইম: ${ms}ms`;
+        addPoints(ms < 300 ? 25 : 12);
+        canClick = false;
+        setTimeout(initReflex, 2000);
+      }
+    }
+
+    /* ================= গেম ৬: নাম্বার মেমোরি ================= */
+    let curFlash = "";
+    function nextFlash() {
+      const numElem = document.getElementById('flash-num');
+      const inArea = document.getElementById('flash-input-area');
+      inArea.style.display = 'none';
+      numElem.style.display = 'block';
+      curFlash = Math.floor(1000 + Math.random() * 9000).toString();
+      numElem.innerText = curFlash;
+      setTimeout(() => {
+        numElem.style.display = 'none';
+        inArea.style.display = 'block';
+        document.getElementById('flash-ans').value = '';
+        document.getElementById('flash-ans').focus();
+      }, 1500);
+    }
+    function checkFlash() {
+      const val = document.getElementById('flash-ans').value.trim();
+      if(val === curFlash) { addPoints(20); nextFlash(); }
+      else { wrongSound(); alert("ভুল হয়েছে! সঠিক সংখ্যা ছিল: " + curFlash); nextFlash(); }
+    }
+
+    /* ================= গেম ৭: ওয়ার্ড আনস্ক্র্যাম্বল ================= */
+    const wordBank = [
+      { scrambled: "শ্লদেবাঙ্গা", actual: "বাংলাদেশ" },
+      { scrambled: "ল্যালারাউটি", actual: "ব্রাহ্মণবাড়িয়া" },
+      { scrambled: "জিক্লাপ্রযু", actual: "প্রযুক্তি" },
+      { scrambled: "টাল্পইহস", actual: "হাসপাতাল" }
+    ];
+    let wordIdx = 0;
+    function nextScramble() {
+      const cur = wordBank[wordIdx % wordBank.length];
+      document.getElementById('scramble-word').innerText = cur.scrambled;
+      document.getElementById('scramble-ans').value = '';
+    }
+    function checkScramble() {
+      const val = document.getElementById('scramble-ans').value.trim();
+      if(val === wordBank[wordIdx % wordBank.length].actual) {
+        addPoints(15);
+        wordIdx++;
+        nextScramble();
+      } else { wrongSound(); }
+    }
+
+    /* ================= গেম ৮: সাইমন সিকোয়েন্স ================= */
+    let simSeq = [], userSeq = [], simTurn = false;
+    function startSimon() {
+      simSeq = [];
+      document.getElementById('sim-start-btn').style.display = 'none';
+      nextSimonRound();
+    }
+    function nextSimonRound() {
+      userSeq = [];
+      simSeq.push(Math.floor(Math.random() * 4));
+      playSeq(0);
+    }
+    function playSeq(idx) {
+      if(idx >= simSeq.length) { simTurn = true; return; }
+      lightUp(simSeq[idx]);
+      setTimeout(() => playSeq(idx + 1), 600);
+    }
+    function lightUp(id) {
+      const el = document.getElementById(`sim-${id}`);
+      el.classList.add('lit');
+      playBeep(300 + id * 100);
+      setTimeout(() => el.classList.remove('lit'), 300);
+    }
+    function simonPress(id) {
+      if(!simTurn) return;
+      lightUp(id);
+      userSeq.push(id);
+      const step = userSeq.length - 1;
+      if(userSeq[step] !== simSeq[step]) {
+        wrongSound();
+        alert("সিকোয়েন্স ভেঙে গেছে!");
+        document.getElementById('sim-start-btn').style.display = 'inline-block';
+        simTurn = false;
+        return;
+      }
+      if(userSeq.length === simSeq.length) {
+        addPoints(20);
+        simTurn = false;
+        setTimeout(nextSimonRound, 800);
+      }
+    }
+
+    /* ================= গেম ৯: টাইপ রাশ ================= */
+    const typeWords = ["সূর্যমুখী", "মহাকাশচারী", "ইন্টারনেট", "সফটওয়্যার", "বিজ্ঞানমনস্ক"];
+    let curType = "";
+    function nextType() {
+      curType = typeWords[Math.floor(Math.random() * typeWords.length)];
+      document.getElementById('type-target').innerText = curType;
+      document.getElementById('type-input').value = '';
+    }
+    function checkType() {
+      const val = document.getElementById('type-input').value.trim();
+      if(val === curType) {
+        addPoints(10);
+        nextType();
+      }
+    }
+
+    /* ================= গেম ১০: লাক অ্যান্ড লজিক ================= */
+    let secretNum = 0;
+    function initGuess() {
+      secretNum = Math.floor(Math.random() * 50) + 1;
+      document.getElementById('guess-hint').innerText = "১ থেকে ৫০ এর মধ্যে অনুমান করুন!";
+      document.getElementById('guess-input').value = '';
+    }
+    function checkGuess() {
+      const guess = parseInt(document.getElementById('guess-input').value);
+      const hint = document.getElementById('guess-hint');
+      if(guess === secretNum) {
+        hint.innerText = "🎉 সঠিক উত্তর! আপনি জিতে গেছেন!";
+        addPoints(30);
+        setTimeout(initGuess, 2000);
+      } else if(guess < secretNum) {
+        hint.innerText = "ছোট হয়েছে! আরও বড় সংখ্যা ভাবুন। ⬆️";
+        wrongSound();
+      } else {
+        hint.innerText = "বড় হয়েছে! আরও ছোট সংখ্যা ভাবুন। ⬇️";
+        wrongSound();
+      }
+    }
+
+    // প্রথমবার সাইট লোড হলে কুইজ চালু হবে
+    loadQuiz();
   </script>
 </body>
 </html>
