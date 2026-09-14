@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Real 3D Bus Driving Simulator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* বাসের কেবিন ও উইন্ডশিল্ড ফ্রেম */
+    #cabin-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ড্যাশবোর্ড ও স্পিডোমিটার UI */
+    #ui-container {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 20;
+      color: #fff;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .gauge-val {
+      font-size: 28px;
+      font-weight: 800;
+      color: #00ffcc;
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+    }
+    .gauge-label {
+      font-size: 12px;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* মোবাইলের কন্ট্রোল বাটন */
+    .mobile-controls {
+      position: absolute;
+      bottom: 30px;
+      right: 25px;
+      display: flex;
+      gap: 15px;
+      z-index: 30;
+    }
+    .btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      backdrop-filter: blur(5px);
+      transition: 0.1s;
+    }
+    .btn:active {
+      transform: scale(0.9);
+      background: rgba(0, 255, 204, 0.4);
+    }
+    .steer-controls {
+      position: absolute;
+      bottom: 30px;
+      left: 25px;
+      display: flex;
+      gap: 15px;
+      z-index: 30;
+    }
+    @media (min-width: 768px) {
+      .mobile-controls, .steer-controls {
+        display: none; /* পিসিতে খেললে কিবোর্ড তীরচিহ্ন দিয়ে চালানো যাবে */
+      }
+    }
+  </style>
+  <!-- Three.js 3D ইঞ্জিন -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <!-- ড্যাশবোর্ড UI -->
+  <div id="ui-container">
+    <div>
+      <div class="gauge-val" id="speed">0</div>
+      <div class="gauge-label">KM/H</div>
+    </div>
+    <div style="border-left: 1px solid rgba(255,255,255,0.2); height: 35px; margin: 0 5px;"></div>
+    <div>
+      <div class="gauge-val" style="color: #ffaa00;" id="gear">D</div>
+      <div class="gauge-label">GEAR</div>
+    </div>
+  </div>
+
+  <!-- মোবাইল কন্ট্রোল বাটন -->
+  <div class="steer-controls">
+    <div class="btn" id="leftBtn">◀</div>
+    <div class="btn" id="rightBtn">▶</div>
+  </div>
+  <div class="mobile-controls">
+    <div class="btn" id="brakeBtn" style="background: rgba(231, 76, 60, 0.3);">B</div>
+    <div class="btn" id="gasBtn" style="background: rgba(46, 204, 113, 0.3);">A</div>
+  </div>
+
+  <script>
+    // ১. সিন এবং ক্যামেরা সেটআপ
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // আকাশ
+    scene.fog = new THREE.Fog(0x87ceeb, 60, 220);
+
+    const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    // ২. লাইটিং
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    dirLight.position.set(50, 100, 50);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    // ৩. বাস গ্রুপ (বাসের বডি, কেবিন, স্টিয়ারিং)
+    const busGroup = new THREE.Group();
+    scene.add(busGroup);
+
+    // কেবিন ড্যাশবোর্ড
+    const dashGeo = new THREE.BoxGeometry(3.5, 0.8, 1.2);
+    const dashMat = new THREE.MeshStandardMaterial({ color: 0x1f2421, roughness: 0.8 });
+    const dashboard = new THREE.Mesh(dashGeo, dashMat);
+    dashboard.position.set(0, -0.4, -1.8);
+    busGroup.add(dashboard);
+
+    // উইন্ডশিল্ড ফ্রেম ও পিলার
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const pillarL = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2), pillarMat);
+    pillarL.position.set(-1.6, 0.4, -1.8);
+    pillarL.rotation.z = -0.15;
+    busGroup.add(pillarL);
+
+    const pillarR = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2), pillarMat);
+    pillarR.position.set(1.6, 0.4, -1.8);
+    pillarR.rotation.z = 0.15;
+    busGroup.add(pillarR);
+
+    // স্টিয়ারিং হুইল (ছবিতে যেমন ড্রাইভারের হাতে থাকে)
+    const steerGroup = new THREE.Group();
+    const wheelGeo = new THREE.TorusGeometry(0.38, 0.035, 16, 40);
+    const steerMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.5 });
+    const wheel = new THREE.Mesh(wheelGeo, steerMat);
+    steerGroup.add(wheel);
+
+    // স্টিয়ারিং সেন্টার স্পোক
+    const spoke = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.75), steerMat);
+    spoke.rotation.z = Math.PI / 2;
+    steerGroup.add(spoke);
+
+    steerGroup.position.set(-0.55, -0.25, -1.35);
+    steerGroup.rotation.x = 0.4;
+    busGroup.add(steerGroup);
+
+    // ক্যামেরা পজিশন (ড্রাইভারের চোখের লেভেলে ককপিট ভিউ)
+    camera.position.set(-0.55, 0.15, -0.8);
+    busGroup.add(camera);
+
+    // ৪. বিশ্ব ও রাস্তা তৈরি
+    const roadWidth = 14;
+    const roadGeo = new THREE.PlaneGeometry(roadWidth, 1000);
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.9 });
+    const road = new THREE.Mesh(roadGeo, roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.z = -400;
+    scene.add(road);
+
+    // পাশের সবুজ ঘাস জমি
+    const terrainGeo = new THREE.PlaneGeometry(1000, 1000);
+    const terrainMat = new THREE.MeshStandardMaterial({ color: 0x2e6f40, roughness: 1 });
+    const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.y = -0.05;
+    terrain.position.z = -400;
+    scene.add(terrain);
+
+    // রাস্তার পাশের গাছপালা তৈরি
+    const treeGeo = new THREE.ConeGeometry(1.8, 5, 6);
+    const trunkGeo = new THREE.CylinderGeometry(0.3, 0.3, 1.5, 5);
+    const leavesMat = new THREE.MeshLambertMaterial({ color: 0x1b4332 });
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4033 });
+
+    for (let i = 0; i < 70; i++) {
+      const tree = new THREE.Group();
+      const leaves = new THREE.Mesh(treeGeo, leavesMat);
+      leaves.position.y = 3;
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = 0.75;
+      tree.add(leaves);
+      tree.add(trunk);
+
+      const side = (i % 2 === 0 ? 1 : -1) * (roadWidth / 2 + 3 + Math.random() * 8);
+      const zPos = -(i * 14);
+      tree.position.set(side, 0, zPos);
+      scene.add(tree);
+    }
+
+    // ৫. কন্ট্রোল এবং ফিজিক্স লজিক
+    const input = { forward: false, backward: false, left: false, right: false };
+    let speed = 0;
+    let steerAngle = 0;
+    const maxSpeed = 1.3;
+    const accel = 0.015;
+    const friction = 0.985;
+
+    // কিবোর্ড ইভেন্ট
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') input.forward = true;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') input.backward = true;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') input.forward = false;
+      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') input.backward = false;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
+    });
+
+    // মোবাইল টাচ ইভেন্ট
+    function bindTouch(btnId, prop) {
+      const el = document.getElementById(btnId);
+      el.addEventListener('touchstart', (e) => { e.preventDefault(); input[prop] = true; });
+      el.addEventListener('touchend', (e) => { e.preventDefault(); input[prop] = false; });
+      el.addEventListener('mousedown', () => input[prop] = true);
+      el.addEventListener('mouseup', () => input[prop] = false);
+    }
+    bindTouch('gasBtn', 'forward');
+    bindTouch('brakeBtn', 'backward');
+    bindTouch('leftBtn', 'left');
+    bindTouch('rightBtn', 'right');
+
+    // উইন্ডো রিসাইজ
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const speedUI = document.getElementById('speed');
+    const gearUI = document.getElementById('gear');
+
+    // ৬. অ্যানিমেশন ও গেম লুপ
+    function update() {
+      requestAnimationFrame(update);
+
+      // অ্যাক্সিলারেশন এবং ব্রেকিং
+      if (input.forward) speed = Math.min(speed + accel, maxSpeed);
+      else if (input.backward) speed = Math.max(speed - accel * 1.5, -0.4);
+      else speed *= friction;
+
+      // স্টিয়ারিং রোটেশন
+      if (input.left) steerAngle = Math.max(steerAngle - 0.05, -0.8);
+      else if (input.right) steerAngle = Math.min(steerAngle + 0.05, 0.8);
+      else steerAngle *= 0.85;
+
+      // বাসের অবস্থান পরিবর্তন
+      if (Math.abs(speed) > 0.005) {
+        busGroup.rotation.y -= steerAngle * 0.02 * (speed / maxSpeed);
+      }
+      busGroup.translateZ(-speed);
+
+      // স্টিয়ারিং হুইলকে ঘোরানো
+      wheel.rotation.z = -steerAngle * 2.5;
+
+      // অসীম রাস্তা তৈরি করার জন্য লুপ
+      if (busGroup.position.z < -800) {
+        busGroup.position.z = 0;
+      }
+
+      // স্পিডোমিটার আপডেট
+      const kmh = Math.abs(Math.round(speed * 90));
+      speedUI.innerText = kmh;
+      gearUI.innerText = speed < -0.05 ? 'R' : (kmh === 0 ? 'N' : 'D');
+
+      renderer.render(scene, camera);
+    }
+
+    update();
+  </script>
+</body>
+</html>
